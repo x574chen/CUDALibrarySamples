@@ -14,7 +14,9 @@
 #include <cstdlib>            // std::rand
                               
 #include <cuda_fp8.h>
-
+#include <thread>
+#include <unistd.h>
+#include <sys/wait.h>
 #define FP16 1000
 #define INT8 1001
 #define FP8  1002
@@ -95,7 +97,9 @@ struct cusparse_compute_type<int> {
 constexpr int EXIT_UNSUPPORTED = 2;
 
 
-int main(void) {
+int run(int device_id, cudaStream_t stream) {
+    CHECK_CUDA(cudaSetDevice(device_id));
+    CHECK_CUDA(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
     int major_cc, minor_cc;
     CHECK_CUDA( cudaDeviceGetAttribute(&major_cc,
                                        cudaDevAttrComputeCapabilityMajor, 0) )
@@ -183,7 +187,7 @@ int main(void) {
     cusparseLtMatmulDescriptor_t   matmul;
     cusparseLtMatmulAlgSelection_t alg_sel;
     cusparseLtMatmulPlan_t         plan;
-    cudaStream_t                   stream = nullptr;
+    // cudaStream_t                   stream = nullptr;
 
     CHECK_CUSPARSE( cusparseLtInit(&handle) )
 
@@ -360,4 +364,18 @@ int main(void) {
     CHECK_CUDA( cudaFree(dA_compressedBuffer) )
 
     return EXIT_SUCCESS;
+}
+
+int main(void) {
+    const int numThreads = 2;
+    cudaStream_t streams[numThreads];
+    std::thread threads[numThreads];
+    for(int i = 0; i< numThreads; i++) {
+       threads[i] = std::thread(run, i, streams[i]);
+    }
+    for (int i =0; i<numThreads;i++) {
+       threads[i].join();
+    }
+
+   return 0;
 }
