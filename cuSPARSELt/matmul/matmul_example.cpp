@@ -256,7 +256,7 @@ int run(int device_id, cudaStream_t stream) {
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Search the best kernel
-    int           num_streams = 0;
+    int           num_streams = 1;
     // cudaStream_t* streams     = nullptr;
 
     if (matmul_search) {
