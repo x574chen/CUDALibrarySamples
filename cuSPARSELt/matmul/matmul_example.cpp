@@ -257,13 +257,13 @@ int run(int device_id, cudaStream_t stream) {
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Search the best kernel
     int           num_streams = 0;
-    cudaStream_t* streams     = nullptr;
+    // cudaStream_t* streams     = nullptr;
 
     if (matmul_search) {
         CHECK_CUSPARSE( cusparseLtMatmulSearch(&handle, &plan, &alpha,
                                                dA_compressed, dB, &beta,
                                                dC, dD, nullptr,
-                                               streams, num_streams) )
+                                               &stream, num_streams) )
         // dC accumulates so reset dC for correctness check
         CHECK_CUDA( cudaMemcpy(dC, hC, C_size, cudaMemcpyHostToDevice) )
     } else {
@@ -285,7 +285,7 @@ int run(int device_id, cudaStream_t stream) {
     CHECK_CUDA( cudaMalloc((void**) &d_workspace, workspace_size) )
     // Perform the matrix multiplication
     CHECK_CUSPARSE( cusparseLtMatmul(&handle, &plan, &alpha, dA_compressed, dB,
-                                     &beta, dC, dD, d_workspace, streams,
+                                     &beta, dC, dD, d_workspace, &stream,
                                      num_streams) )
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // destroy plan and handle
@@ -377,5 +377,13 @@ int main(void) {
        threads[i].join();
     }
 
+    // pid_t pid = fork();
+    // if(pid == 0) {
+    //     run(1, streams[1]);
+    // }else{
+    //     run(0, streams[0]);
+    //     int status;
+    //     wait(&status);
+    // }
    return 0;
 }
